@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de QR Codes pour PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 40px;
+            background: #f8f9ff;
+            transition: all 0.3s;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+        }
+
+        .upload-section input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .upload-info {
+            margin-top: 15px;
+            color: #666;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .file-card {
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .file-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            word-break: break-word;
+        }
+
+        .qr-code {
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .qr-code canvas {
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .btn-download {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #5568d3;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .btn-copy {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            background: #059669;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+        }
+
+        .file-url {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            word-break: break-all;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideIn 0.3s;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .storage-info {
+            background: #e0e7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .storage-info strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>📱 Générateur de QR Codes PDF</h1>
+            <p>Créez des QR codes pour partager vos fichiers PDF gratuitement</p>
+        </div>
+
+        <div class="main-content">
+            <div class="storage-info">
+                <strong>✨ Nouveau :</strong> Utilise IndexedDB pour stocker beaucoup plus de fichiers (jusqu'à plusieurs centaines de MB selon votre navigateur)
+            </div>
+
+            <div class="instructions">
+                <h3>📋 Instructions</h3>
+                <ol>
+                    <li>Uploadez vos fichiers PDF (maximum 100 fichiers)</li>
+                    <li>Un QR code sera généré automatiquement pour chaque fichier</li>
+                    <li>Téléchargez les QR codes ou copiez les liens à partager</li>
+                    <li>Les fichiers sont stockés localement dans votre navigateur (IndexedDB)</li>
+                    <li><strong>Important :</strong> Pour un partage permanent, déployez cette page sur GitHub Pages (voir README.md)</li>
+                </ol>
+            </div>
+
+            <div class="upload-section">
+                <input type="file" id="fileInput" accept=".pdf" multiple>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    📄 Choisir des fichiers PDF
+                </button>
+                <div class="upload-info">
+                    <p>Formats acceptés : PDF uniquement | Maximum : 100 fichiers</p>
+                    <p id="fileCount">Fichiers stockés : 0</p>
+                </div>
+            </div>
+
+            <div id="filesContainer">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <h3>Aucun fichier pour le moment</h3>
+                    <p>Uploadez vos premiers fichiers PDF pour commencer</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const MAX_FILES = 100;
+        const GITHUB_PAGES_URL = window.location.origin + window.location.pathname.replace(/\/$/, '');
+        
+        // IndexedDB Configuration
+        const DB_NAME = 'PDFQRCodeDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'pdfFiles';
+        let db;
+
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = () => {
+                    console.error('Erreur lors de l\'ouverture de la base de données');
+                    reject(request.error);
+                };
+
+                request.onsuccess = () => {
+                    db = request.result;
+                    console.log('Base de données ouverte avec succès');
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    
+                    // Create object store if it doesn't exist
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        objectStore.createIndex('name', 'name', { unique: false });
+                        console.log('Object store créé');
+                    }
+                };
+            });
+        }
+
+        // Add file to IndexedDB
+        function addFile(fileData) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.add(fileData);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Get all files from IndexedDB
+        function getAllFiles() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.getAll();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Delete file from IndexedDB
+        function deleteFile(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Count files in IndexedDB
+        function countFiles() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.count();
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Update file count display
+        async function updateFileCount() {
+            const count = await countFiles();
+            document.getElementById('fileCount').textContent = `Fichiers stockés : ${count}`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                await initDB();
+                await renderFiles();
+                await updateFileCount();
+                
+                document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+            } catch (error) {
+                console.error('Erreur d\'initialisation:', error);
+                showNotification('Erreur lors de l\'initialisation de la base de données', 'error');
+            }
+        });
+
+        async function handleFileSelect(event) {
+            const selectedFiles = Array.from(event.target.files);
+            const currentFileCount = await countFiles();
+
+            if (currentFileCount + selectedFiles.length > MAX_FILES) {
+                showNotification(`Vous ne pouvez pas avoir plus de ${MAX_FILES} fichiers`, 'error');
+                return;
+            }
+
+            for (const file of selectedFiles) {
+                if (file.type === 'application/pdf') {
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = async function(e) {
+                            const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                            const fileData = {
+                                id: fileId,
+                                name: file.name,
+                                data: e.target.result,
+                                url: `${GITHUB_PAGES_URL}/pdfs/${file.name}`,
+                                uploadDate: new Date().toISOString()
+                            };
+                            
+                            await addFile(fileData);
+                            await renderFiles();
+                            await updateFileCount();
+                            showNotification(`${file.name} ajouté avec succès !`);
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (error) {
+                        console.error('Erreur lors de l\'ajout du fichier:', error);
+                        showNotification(`Erreur lors de l'ajout de ${file.name}`, 'error');
+                    }
+                }
+            }
+
+            event.target.value = '';
+        }
+
+        async function renderFiles() {
+            const container = document.getElementById('filesContainer');
+            
+            try {
+                const files = await getAllFiles();
+                
+                if (files.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <h3>Aucun fichier pour le moment</h3>
+                            <p>Uploadez vos premiers fichiers PDF pour commencer</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const grid = document.createElement('div');
+                grid.className = 'files-grid';
+
+                files.forEach(file => {
+                    const card = createFileCard(file);
+                    grid.appendChild(card);
+                });
+
+                container.innerHTML = '';
+                container.appendChild(grid);
+            } catch (error) {
+                console.error('Erreur lors du rendu des fichiers:', error);
+                showNotification('Erreur lors du chargement des fichiers', 'error');
+            }
+        }
+
+        function createFileCard(file) {
+            const card = document.createElement('div');
+            card.className = 'file-card';
+
+            const qrId = 'qr-' + file.id;
+            
+            card.innerHTML = `
+                <div class="file-name">${file.name}</div>
+                <div class="qr-code" id="${qrId}"></div>
+                <div class="file-url">${file.url}</div>
+                <div class="file-actions">
+                    <button class="btn btn-download" onclick="downloadQR('${qrId}', '${file.name}')">
+                        ⬇️ QR Code
+                    </button>
+                    <button class="btn btn-copy" onclick="copyURL('${file.url}')">
+                        📋 Copier URL
+                    </button>
+                    <button class="btn btn-delete" onclick="deleteFileHandler('${file.id}')">
+                        🗑️ Supprimer
+                    </button>
+                </div>
+            `;
+
+            // Generate QR code after card is added to DOM
+            setTimeout(() => {
+                new QRCode(document.getElementById(qrId), {
+                    text: file.url,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }, 100);
+
+            return card;
+        }
+
+        function downloadQR(qrId, fileName) {
+            const canvas = document.querySelector(`#${qrId} canvas`);
+            if (canvas) {
+                const url = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `QR_${fileName.replace('.pdf', '')}.png`;
+                a.click();
+                showNotification('QR Code téléchargé !');
+            }
+        }
+
+        function copyURL(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                showNotification('URL copiée dans le presse-papier !');
+            });
+        }
+
+        async function deleteFileHandler(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+                try {
+                    await deleteFile(id);
+                    await renderFiles();
+                    await updateFileCount();
+                    showNotification('Fichier supprimé');
+                } catch (error) {
+                    console.error('Erreur lors de la suppression:', error);
+                    showNotification('Erreur lors de la suppression du fichier', 'error');
+                }
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = type === 'error' ? '#ef4444' : '#10b981';
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Export function for GitHub Pages deployment
+        async function exportPDFs() {
+            try {
+                const files = await getAllFiles();
+                const pdfsFolder = {};
+                
+                files.forEach(file => {
+                    pdfsFolder[file.name] = file.data;
+                });
+                
+                const dataStr = JSON.stringify(pdfsFolder, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pdfs-export.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showNotification('Export réussi !');
+            } catch (error) {
+                console.error('Erreur lors de l\'export:', error);
+                showNotification('Erreur lors de l\'export', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
